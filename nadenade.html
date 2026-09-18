@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像をなでるだけのツール</title>
+    <!-- Google Fonts for clean Japanese typography -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background: linear-gradient(135deg, #fff0f5 0%, #f0f8ff 100%);
+            color: #4a4a4a;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            touch-action: manipulation;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: #ff69b4;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        header p {
+            font-size: 0.9rem;
+            color: #777;
+        }
+
+        main {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+        }
+
+        /* Upload Panel Styling */
+        #upload-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 30px 20px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(255, 182, 193, 0.2);
+            border: 2px dashed #ffb6c1;
+            text-align: center;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        #upload-panel h2 {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        #upload-panel p {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .file-label {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
+            color: white;
+            font-weight: bold;
+            padding: 12px 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 117, 140, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .file-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 117, 140, 0.6);
+        }
+
+        .file-label:active {
+            transform: translateY(0);
+        }
+
+        #image-input {
+            display: none;
+        }
+
+        /* Pet Stage Styling */
+        .hidden {
+            display: none !important;
+        }
+
+        #pet-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 320px;
+            margin-bottom: 25px;
+            border: 1px solid #eee;
+        }
+
+        .counter-wrapper {
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+        }
+
+        .counter-label {
+            font-size: 0.75rem;
+            color: #aaa;
+            font-weight: bold;
+        }
+
+        #pet-count {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ff69b4;
+        }
+
+        .reset-btn {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            color: #666;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.2s;
+        }
+
+        .reset-btn:hover {
+            background: #eee;
+            color: #333;
+        }
+
+        /* Pet Container Box */
+        .pet-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            border: 5px solid white;
+            background: white;
+            cursor: grab;
+            user-select: none;
+            -webkit-user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pet-container:active {
+            cursor: grabbing;
+        }
+
+        #target-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+            transition: transform 0.1s;
+        }
+
+        #particle-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        /* Mood Text Bubble */
+        #mood-text {
+            margin-top: 25px;
+            background: rgba(255, 182, 193, 0.2);
+            color: #d81b60;
+            padding: 8px 24px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            animation: pulse-mood 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-mood {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+
+        /* Animations */
+        @keyframes float-up {
+            0% { transform: translateY(0) scale(0.8); opacity: 1; }
+            100% { transform: translateY(-70px) scale(1.3); opacity: 0; }
+        }
+
+        .floating-particle {
+            position: absolute;
+            animation: float-up 0.9s ease-out forwards;
+            font-size: 1.4rem;
+            pointer-events: none;
+        }
+
+        @keyframes squish {
+            0% { transform: scale(1, 1); }
+            50% { transform: scale(1.06, 0.94); }
+            100% { transform: scale(1, 1); }
+        }
+
+        .squish-anim {
+            animation: squish 0.2s ease-in-out;
+        }
+
+        footer {
+            margin-top: 20px;
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>なでなでツール</h1>
+        <p>画像をアップロードして、マウスや指でなでて癒やされましょう。</p>
+    </header>
+
+    <main>
+        <div id="upload-panel">
+            <div class="upload-icon">📁</div>
+            <h2>画像を設定する</h2>
+            <p>お手元の画像ファイルを選択してください</p>
+            
+            <label class="file-label">
+                画像ファイルを選ぶ
+                <input type="file" id="image-input" accept="image/*">
+            </label>
+        </div>
+
+        <div id="pet-stage" class="hidden">
+            <div class="status-card">
+                <div class="counter-wrapper">
+                    <span class="counter-label">なでた回数</span>
+                    <span id="pet-count">0</span>
+                    <span class="counter-label">回</span>
+                </div>
+                <button class="reset-btn" onclick="resetImage()">画像を変える</button>
+            </div>
+
+            <div id="interaction-box" class="pet-container">
+                <img id="target-image" src="" alt="Target">
+                <div id="particle-layer"></div>
+            </div>
+
+            <div id="mood-text">
+                なでてあげてね！ (｡•̀ᴗ-)✧
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Pet the Image Tool</p>
+    </footer>
+
+    <script>
+        let petCount = 0;
+        let isPetting = false;
+        let strokeDistance = 0;
+        let lastX = 0;
+        let lastY = 0;
+
+        const uploadPanel = document.getElementById('upload-panel');
+        const petStage = document.getElementById('pet-stage');
+        const targetImage = document.getElementById('target-image');
+        const imageInput = document.getElementById('image-input');
+        const interactionBox = document.getElementById('interaction-box');
+        const particleLayer = document.getElementById('particle-layer');
+        const petCountDisplay = document.getElementById('pet-count');
+        const moodText = document.getElementById('mood-text');
+
+        // Handle image selection via file input
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    activatePetStage(event.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function activatePetStage(src) {
+            targetImage.src = src;
+            uploadPanel.classList.add('hidden');
+            petStage.classList.remove('hidden');
+            petCount = 0;
+            updateCounter();
+            updateMood();
+        }
+
+        function resetImage() {
+            petStage.classList.add('hidden');
+            uploadPanel.classList.remove('hidden');
+            imageInput.value = '';
+        }
+
+        // Petting gesture handlers (Mouse & Touch)
+        function handleStart(x, y) {
+            isPetting = true;
+            lastX = x;
+            lastY = y;
+            strokeDistance = 0;
+        }
+
+        function handleMove(x, y, clientX, clientY) {
+            if (!isPetting) return;
+
+            const dx = x - lastX;
+            const dy = y - lastY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            strokeDistance += dist;
+            lastX = x;
+            lastY = y;
+
+            // Trigger feedback every 35px of continuous movement
+            if (strokeDistance > 35) {
+                strokeDistance = 0;
+                registerPet(clientX, clientY);
+            }
+        }
+
+        function handleEnd() {
+            isPetting = false;
+        }
+
+        // Mouse Events
+        interactionBox.addEventListener('mousedown', (e) => {
+            handleStart(e.offsetX, e.offsetY);
+        });
+        interactionBox.addEventListener('mousemove', (e) => {
+            handleMove(e.offsetX, e.offsetY, e.clientX, e.clientY);
+        });
+        window.addEventListener('mouseup', handleEnd);
+
+        // Touch Events for Mobile
+        interactionBox.addEventListener('touchstart', (e) => {
+            const rect = interactionBox.getBoundingClientRect();
+            const touch = e.touches[0];
+            handleStart(touch.clientX - rect.left, touch.clientY - rect.top);
+            e.preventDefault();
+        });
+        interactionBox.addEventListener('touchmove', (e) => {
+            const rect = interactionBox.getBoundingClientRect();
+            const touch = e.touches[0];
+            handleMove(touch.clientX - rect.left, touch.clientY - rect.top, touch.clientX, touch.clientY);
+            e.preventDefault();
+        });
+        window.addEventListener('touchend', handleEnd);
+
+        function registerPet(clientX, clientY) {
+            petCount++;
+            updateCounter();
+            updateMood();
+            triggerSquish();
+            spawnParticle(clientX, clientY);
+        }
+
+        function updateCounter() {
+            petCountDisplay.textContent = petCount;
+        }
+
+        function updateMood() {
+            let msg = "";
+            if (petCount === 0) {
+                msg = "なでてあげてね！ (｡•̀ᴗ-)✧";
+            } else if (petCount < 15) {
+                msg = "きもちいいな～ ♪";
+            } else if (petCount < 40) {
+                msg = "もっとナデナデして！ (๑>◡<๑)";
+            } else if (petCount < 80) {
+                msg = "大好き！幸せ～ (*˘︶˘*).｡.:*♡";
+            } else {
+                msg = "トロトロに癒やされてるよ～ zzz";
+            }
+            moodText.textContent = msg;
+        }
+
+        function triggerSquish() {
+            interactionBox.classList.remove('squish-anim');
+            void interactionBox.offsetWidth;
+            interactionBox.classList.add('squish-anim');
+        }
+
+        function spawnParticle(clientX, clientY) {
+            const particle = document.createElement('div');
+            const symbols = ['❤️', '✨', '💖', '⭐', '🌸'];
+            particle.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+            particle.className = 'floating-particle';
+            
+            const rect = particleLayer.getBoundingClientRect();
+            const x = (clientX ? clientX - rect.left : rect.width / 2) + (Math.random() * 30 - 15);
+            const y = (clientY ? clientY - rect.top : rect.height / 2) + (Math.random() * 20 - 10);
+            
+            particle.style.left = `${x}px`;
+            particle.style.top = `${y}px`;
+            
+            particleLayer.appendChild(particle);
+            setTimeout(() => particle.remove(), 900);
+        }
+    </script>
+</body>
+</html>
